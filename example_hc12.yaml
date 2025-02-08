@@ -1,7 +1,16 @@
 # Example configuration for using HC-12 with ESPHome
+esphome:
+  name: hc12-component
+
+esp8266:
+  board: nodemcuv2
+  restore_from_flash: true
 
 external_components:
-  - source: components
+  - source: github://madurapa/esphome-hc12@main
+
+logger:
+  level: INFO
 
 uart:
   id: uart_12
