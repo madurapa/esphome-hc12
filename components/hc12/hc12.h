@@ -13,6 +13,7 @@ class HC12Component : public Component, public uart::UARTDevice {
   
   void setup() override;
   void loop() override;
+  void dump_config() override;
   
   void send_message(const std::string& message);
   void set_callback(std::function<void(const std::string&)> callback) { 

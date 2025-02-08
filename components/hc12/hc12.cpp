@@ -6,6 +6,12 @@ namespace hc12 {
 
 static const char* TAG = "hc12";
 
+void HC12Component::dump_config() {
+  ESP_LOGCONFIG(TAG, "HC-12:");
+  ESP_LOGCONFIG(TAG, "  Buffer Size: %u", MAX_BUFFER_SIZE);
+  this->check_uart_settings(9600);
+}
+
 void HC12Component::setup() {
   ESP_LOGCONFIG(TAG, "Setting up HC-12 component...");
 }
