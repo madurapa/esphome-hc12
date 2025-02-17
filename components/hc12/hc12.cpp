@@ -22,9 +22,11 @@ namespace esphome
 
     void HC12Component::loop()
     {
+      bool received_data = false;
       while (available())
       {
         char c = read();
+        received_data = true;
 
         // Skip any control characters or invalid bytes at the start of message
         if (buffer_.empty() && !is_valid_char(c))
@@ -49,6 +51,19 @@ namespace esphome
           buffer_.clear();
         }
       }
+      if (received_data)
+      {
+        hc12_online_ = true;
+      }
+      else
+      {
+        static uint32_t last_check = millis();
+        if (millis() - last_check > 10000)
+        {
+          hc12_online_ = false;
+          last_check = millis();
+        }
+      }
     }
 
     bool HC12Component::is_valid_char(char c) const
@@ -61,6 +76,7 @@ namespace esphome
     {
       if (!buffer_.empty())
       {
+        hc12_online_ = true;
         std::string clean_data = sanitize_message(buffer_);
 
         if (!clean_data.empty())
@@ -123,6 +139,12 @@ namespace esphome
       write_array(reinterpret_cast<const uint8_t *>(clean_message.c_str()),
                   clean_message.length());
       ESP_LOGD(TAG, "Sent: %s", clean_message.c_str());
+    }
+
+    bool HC12Component::is_available()
+    {
+      ESP_LOGD(TAG, "HC-12 is %s", hc12_online_ ? "Online" : "Offline");
+      return hc12_online_;
     }
 
   } // namespace hc12

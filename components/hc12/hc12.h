@@ -19,6 +19,7 @@ namespace esphome
       void dump_config() override;
 
       void send_message(const std::string &message);
+      bool is_available();
       void set_callback(std::function<void(const std::string &)> callback)
       {
         callback_ = std::move(callback);
@@ -36,6 +37,7 @@ namespace esphome
 
     private:
       std::string buffer_;
+      bool hc12_online_ = false;
       std::function<void(const std::string &)> callback_{nullptr};
       static constexpr char MESSAGE_TERMINATOR = '\n';
       static constexpr size_t MAX_BUFFER_SIZE = 256;
