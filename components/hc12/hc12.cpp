@@ -11,7 +11,10 @@ namespace esphome
     void HC12Component::dump_config()
     {
       ESP_LOGCONFIG(TAG, "HC-12:");
-      ESP_LOGCONFIG(TAG, "  Buffer Size: %u", MAX_BUFFER_SIZE);
+      ESP_LOGCONFIG(TAG, "  Buffer Size: %u", max_buffer_size_);
+      ESP_LOGCONFIG(TAG, "  Message Terminator: 0x%02X ('%c')",
+                    static_cast<uint8_t>(message_terminator_),
+                    isprint(static_cast<unsigned char>(message_terminator_)) ? message_terminator_ : '.');
       this->check_uart_settings(9600);
     }
 
@@ -35,7 +38,7 @@ namespace esphome
           continue;
         }
 
-        if (c == MESSAGE_TERMINATOR)
+        if (c == message_terminator_)
         {
           process_buffer();
         }
@@ -45,9 +48,9 @@ namespace esphome
         }
 
         // Prevent buffer overflow
-        if (buffer_.length() >= MAX_BUFFER_SIZE)
+        if (buffer_.length() >= max_buffer_size_)
         {
-          ESP_LOGW(TAG, "Buffer overflow, clearing buffer");
+          ESP_LOGW(TAG, "Buffer overflow! Buffer length: %d, contents: %s", buffer_.length(), buffer_.c_str());
           buffer_.clear();
         }
       }
@@ -135,7 +138,7 @@ namespace esphome
         return;
       }
 
-      clean_message += MESSAGE_TERMINATOR;
+      clean_message += message_terminator_;
       write_array(reinterpret_cast<const uint8_t *>(clean_message.c_str()),
                   clean_message.length());
       ESP_LOGD(TAG, "Sent: %s", clean_message.c_str());

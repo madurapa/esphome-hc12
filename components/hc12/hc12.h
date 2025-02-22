@@ -30,6 +30,9 @@ namespace esphome
         return setup_priority::LATE;
       }
 
+      void set_max_buffer_size(size_t size) { max_buffer_size_ = size; }
+      void set_message_terminator(const char *terminator) { message_terminator_ = terminator[0]; }
+
     protected:
       bool is_valid_char(char c) const;
       void process_buffer();
@@ -39,8 +42,8 @@ namespace esphome
       std::string buffer_;
       bool hc12_online_ = false;
       std::function<void(const std::string &)> callback_{nullptr};
-      static constexpr char MESSAGE_TERMINATOR = '\n';
-      static constexpr size_t MAX_BUFFER_SIZE = 256;
+      char message_terminator_ = '\n';
+      size_t max_buffer_size_ = 256;
     };
 
   } // namespace hc12
