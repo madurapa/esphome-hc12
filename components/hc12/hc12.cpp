@@ -8,50 +8,46 @@ namespace esphome
 
     static const char *TAG = "hc12";
 
-    void HC12Component::dump_config()
-    {
-      ESP_LOGCONFIG(TAG, "HC-12:");
-      ESP_LOGCONFIG(TAG, "  Buffer Size: %u", max_buffer_size_);
-      ESP_LOGCONFIG(TAG, "  Message Terminator: 0x%02X ('%c')",
-                    static_cast<uint8_t>(message_terminator_),
-                    isprint(static_cast<unsigned char>(message_terminator_)) ? message_terminator_ : '.');
-      this->check_uart_settings(9600);
-    }
-
     void HC12Component::setup()
     {
       ESP_LOGCONFIG(TAG, "Setting up HC-12 component...");
+      buffer_.reserve(max_buffer_size_);
+    }
+
+    void HC12Component::dump_config()
+    {
+      ESP_LOGCONFIG(TAG, "HC-12:");
+      ESP_LOGCONFIG(TAG, "  Max Buffer Size: %u", max_buffer_size_);
+      ESP_LOGCONFIG(TAG, "  Message Terminator: '%s'", terminator_.c_str());
     }
 
     void HC12Component::loop()
     {
       bool received_data = false;
-      while (available())
+      while (available() > 0)
       {
         char c = read();
         received_data = true;
+        buffer_ += c;
 
-        // Skip any control characters or invalid bytes at the start of message
-        if (buffer_.empty() && !is_valid_char(c))
+        // Overflow protection
+        if (buffer_.length() >= max_buffer_size_)
         {
-          ESP_LOGV(TAG, "Skipping invalid start character: 0x%02X", static_cast<uint8_t>(c));
+          ESP_LOGW(TAG, "Buffer overflow, clearing (length: %u)", buffer_.length());
+          buffer_.clear();
           continue;
         }
 
-        if (c == message_terminator_)
+        // Check for configurable terminator
+        if (buffer_.length() >= terminator_.length())
         {
-          process_buffer();
-        }
-        else
-        {
-          buffer_ += c;
-        }
-
-        // Prevent buffer overflow
-        if (buffer_.length() >= max_buffer_size_)
-        {
-          ESP_LOGW(TAG, "Buffer overflow! Buffer length: %d, contents: %s", buffer_.length(), buffer_.c_str());
-          buffer_.clear();
+          size_t pos = buffer_.find(terminator_);
+          if (pos != std::string::npos)
+          {
+            std::string message = buffer_.substr(0, pos);
+            buffer_.erase(0, pos + terminator_.length());
+            process_buffer(message);
+          }
         }
       }
       if (received_data)
@@ -69,79 +65,24 @@ namespace esphome
       }
     }
 
-    bool HC12Component::is_valid_char(char c) const
+    void HC12Component::process_buffer(std::string message)
     {
-      // Allow only printable ASCII and valid UTF-8 continuation bytes
-      return (c >= 32 && c <= 126) || (c >= 0x80);
-    }
-
-    void HC12Component::process_buffer()
-    {
-      if (!buffer_.empty())
+      if (!message.empty())
       {
-        hc12_online_ = true;
-        std::string clean_data = sanitize_message(buffer_);
-
-        if (!clean_data.empty())
-        {
-          ESP_LOGD(TAG, "Received: %s", clean_data.c_str());
-
-          if (callback_)
-          {
-            callback_(clean_data);
-          }
-        }
-
-        buffer_.clear();
+        ESP_LOGD(TAG, "Received: %s", message.c_str());
+        if (callback_)
+          callback_(message);
       }
-    }
-
-    std::string HC12Component::sanitize_message(const std::string &message) const
-    {
-      std::string clean_message;
-      clean_message.reserve(message.length());
-      bool found_invalid = false;
-
-      for (char c : message)
-      {
-        if (is_valid_char(c))
-        {
-          clean_message += c;
-        }
-        else
-        {
-          found_invalid = true;
-          ESP_LOGV(TAG, "Filtered invalid character: 0x%02X", static_cast<uint8_t>(c));
-        }
-      }
-
-      if (found_invalid)
-      {
-        ESP_LOGD(TAG, "Original message contained invalid characters");
-      }
-
-      return clean_message;
     }
 
     void HC12Component::send_message(const std::string &message)
     {
-      if (message.empty())
-      {
-        ESP_LOGW(TAG, "Attempted to send empty message");
-        return;
-      }
+      // Ensure message is terminated
+      std::string to_send = message + terminator_;
 
-      std::string clean_message = sanitize_message(message);
-      if (clean_message.empty())
-      {
-        ESP_LOGW(TAG, "Message contained no valid characters");
-        return;
-      }
+      write_array(reinterpret_cast<const uint8_t *>(to_send.c_str()), to_send.length());
 
-      clean_message += message_terminator_;
-      write_array(reinterpret_cast<const uint8_t *>(clean_message.c_str()),
-                  clean_message.length());
-      ESP_LOGD(TAG, "Sent: %s", clean_message.c_str());
+      ESP_LOGD(TAG, "Sent: %s", to_send.c_str());
     }
 
     bool HC12Component::is_available()

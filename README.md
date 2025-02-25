@@ -45,8 +45,8 @@ uart:
 hc12:
   id: hc12_component
   uart_id: uart_12
-  max_buffer_size: 512 # Optional, default is 256
-  message_terminator: ';' # Optional, default is "\n"
+  max_buffer_size: 512 # Optional, default is 64
+  message_terminator: ';' # Optional, default is "\r\n"
 ```
 
 ## Examples
