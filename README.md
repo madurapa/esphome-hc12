@@ -26,6 +26,7 @@ For more details on external components, refer to the [ESPHome External Componen
 ```yaml
 external_components:
   - source: github://madurapa/esphome-hc12@main
+    refresh: 0s
 ```
 
 ### 2. Configure UART for the HC-12 module
