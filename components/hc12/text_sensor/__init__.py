@@ -18,7 +18,7 @@ HC12TextSensor = hc12_ns.class_("HC12TextSensor", text_sensor.TextSensor, cg.Com
 CONF_HC12_ID = "hc12_id"
 
 # Configuration schema
-CONFIG_SCHEMA = text_sensor.TEXT_SENSOR_SCHEMA.extend({
+CONFIG_SCHEMA = text_sensor.text_sensor_schema(HC12TextSensor).extend({
     cv.GenerateID(): cv.declare_id(HC12TextSensor),
     cv.Required(CONF_HC12_ID): cv.use_id(HC12Component),
     cv.Optional(CONF_FILTERS): text_sensor.validate_filters,
