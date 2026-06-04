@@ -28,12 +28,15 @@ namespace esphome
 
     private:
       std::string buffer_;
-      bool hc12_online_ = false;
+      bool hc12_online_{false};
+      uint32_t last_packet_time_{0};
+      uint32_t last_char_time_{0};
+      
       std::function<void(const std::string &)> callback_{nullptr};
       size_t max_buffer_size_{64};
       std::string terminator_{"\r\n"};
 
-      void process_buffer(std::string message);
+      void process_buffer(const std::string &message);
     };
 
   } // namespace hc12
